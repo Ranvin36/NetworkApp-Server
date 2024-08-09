@@ -1,0 +1,463 @@
+import { View,Text, StyleSheet, StatusBar,Image, FlatList ,TextInput, TouchableOpacity ,ScrollView , RefreshControl, Dimensions} from "react-native"
+import { useSelector } from "react-redux"
+import { rootStore } from "../redux/store"
+import Stories from "../../dummyData/stories"
+import { router } from "expo-router";
+import axios from "axios";
+import { useEffect, useState,useCallback  } from "react";
+import { ipAddress } from "@/constants/ipAddress";
+import { Audio } from 'expo-av';
+import { Gesture, GestureDetector, GestureHandlerRootView, PanGestureHandler } from "react-native-gesture-handler"
+import Animated, { useAnimatedStyle, useSharedValue, withSpring,scrollTo, useDerivedValue, useAnimatedReaction, runOnJS} from "react-native-reanimated";
+
+// Icon Packs
+import { Feather } from '@expo/vector-icons';
+import { Entypo } from '@expo/vector-icons';
+import { AntDesign } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from "@/constants/Colors";
+
+const {height : SCREEN_HEIGHT , width : SCREEN_WIDTH} = Dimensions.get('window')
+
+export default function Okies(){
+    const user = useSelector((state:rootStore)=>state.user)
+    const translateY = useSharedValue(0)
+    const context = useSharedValue({y:0})
+    const [posts,setPosts] = useState([])
+    const [comment,setComment] = useState('')
+    const [activePost,setActivePost] = useState()
+    const [isSheetOpened,setIsSheetOpened] = useState(false)
+    const isSheetOpenedDerived = useDerivedValue(() => translateY.value < -SCREEN_HEIGHT / 3)
+    const [follows,setFollows] = useState([])
+    const [refresh,setRefresh] = useState(false)
+    const [dummyData,setDummyData] = useState(['Item 1'])
+    const [followCount,setFollowCount] =  useState([0])
+    const [activeComments,setActiveComments] = useState([]) 
+
+    useAnimatedReaction(
+        () => isSheetOpenedDerived.value,
+        (isOpen)=>{
+            runOnJS(setIsSheetOpened)(isOpen)
+        } 
+    )
+
+    const gesture = Gesture.Pan().onStart((event)=>{
+        context.value = {y:translateY.value}
+    }).onUpdate((event)=>{
+        translateY.value = event.translationY + context.value.y
+        translateY.value = Math.max(translateY.value, -SCREEN_HEIGHT)
+    }).onEnd(()=>{
+        if(translateY.value > -SCREEN_HEIGHT/3){
+            translateY.value = withSpring(0,{damping:50})
+        }
+        else if(translateY.value < -SCREEN_HEIGHT/1.7){
+            translateY.value = withSpring(-SCREEN_HEIGHT+50,{damping:50})
+        }
+    })
+
+    const rBottomSheetStyle = useAnimatedStyle(() =>{
+        return{
+            transform : [{translateY: translateY.value}]
+        }
+    })
+
+    async function getPosts(){
+        const response = await axios.get(`http://${ipAddress}:3001/posts/get-posts`,{
+            headers:{
+                Authorization:`Bearer ${user.user.token}`
+            }
+        }) 
+        setPosts(response.data.data)
+    }
+
+    useEffect(()=>{
+        getPosts()
+    },[dummyData])
+
+    const Refresh = useCallback(()=>{
+        setRefresh(true)
+        setTimeout(()=>{
+            setDummyData((prevData) => [...prevData, `Item ${dummyData.length+1}`]) 
+            setRefresh(false)
+        },2000)
+    },[])
+
+    async function PlaySound(){
+        const {sound}  = await Audio.Sound.createAsync(require('../../assets/videos/ding.mp3'))
+        await sound.playAsync();
+    }
+
+    const toggleBottomSheet = async(id) =>{
+        setActivePost(id)
+        if(isSheetOpened){
+            translateY.value = withSpring(0,{damping:50})
+        }
+        else{
+            translateY.value = withSpring(-SCREEN_HEIGHT+50,{damping:50})
+            const findPosts = posts && posts.find((item) => item._id === id)
+            if(findPosts){
+                setActiveComments(findPosts.comments ? findPosts.comments : [])
+            }
+            else{
+                setActiveComments([])
+                return
+            }
+        }
+    }
+
+    
+    async function FollowUser(uid){
+        try{
+            const response = await axios.post(`http://${ipAddress}:3001/users/add-follower/${uid}`,null,{
+                headers:{
+                    Authorization:`Bearer ${user.user.token}`
+                }
+            })
+            setFollowCount((prev) => [...prev, 1])
+        }
+        catch(error){
+            console.log(error)
+        }
+    }
+
+    async function UnFollowUser(uid){
+        const response = await axios.delete(`http://${ipAddress}:3001/users/remove-follower/${uid}`,{
+            headers:{
+                Authorization:`Bearer ${user.user.token}`
+            }
+        })
+
+        setFollowCount((prev) => [...prev,1])
+    }
+
+    function ViewProfile(id){
+        router.push({ pathname: `viewProfile/${id}`, params: { id } });
+    }
+
+    async function GetFollowers(){
+        const response = await axios.get(`http://${ipAddress}:3001/users/get-followers`,{
+            headers:{
+                Authorization:`Bearer ${user.user.token}`
+            }
+        })
+        setFollows(response.data)
+    }
+
+    async function LikePost(uid){
+        const response = await axios.post(`http://${ipAddress}:3001/posts/like-posts/${uid}`,null,{
+            headers:{
+                Authorization:`Bearer ${user.user.token}`
+            }
+        })
+        PlaySound()
+        getPosts()
+    }
+    async function unlikePost(uid){
+        const response = await axios.post(`http://${ipAddress}:3001/posts/unlike-posts/${uid}`,null,{
+            headers:{
+                Authorization:`Bearer ${user.user.token}`
+            }
+        })
+        getPosts()
+    }
+
+    async function CreateComment(){
+        const data = {"message":comment}
+        const response = await axios.post(`http://${ipAddress}:3001/posts/add-comment/${activePost}`,data,{
+            headers:{
+                Authorization: `Bearer ${user.user.token}`
+            }
+        })
+    }
+
+    useEffect(()=>{
+        GetFollowers()
+    },[followCount])
+
+    useEffect(()=>{
+        translateY.value = withSpring(-SCREEN_HEIGHT/3,{damping:500});
+    },[])
+
+    useEffect(()=>{
+        toggleBottomSheet()
+    },[])
+
+    const renderItem = ({item}) =>{
+        const creatorImage = item.creator[0].profilePicture
+        const imgUrl = item.image
+        const like = item.likes
+        const comments  = item.comments
+        const ifFollowing = follows && follows.filter((followItem) => followItem?.following[0]?._id == item.creator[0]?.creator_id)
+        const ifLiked = like && like.filter((liked) => liked == user.user.data._id)
+        return(
+            <View style={styles.posts}>
+            <View style={styles.postHeader}>
+                <View style={{flexDirection:"row",alignItems:"center"}}>
+                    {creatorImage ? 
+                        <View>
+                            <Image source={{uri:creatorImage}} style={{width:50,height:50, borderRadius:50}}/>
+                        </View>
+                        :
+                        <View>
+                            <Image source={require('../../assets/images/model.jpg')} style={{width:50,height:50, borderRadius:50}}/>
+                        </View>
+                    }
+                        <TouchableOpacity style={{marginLeft:5}} onPress={()=>ViewProfile(item.creator[0].creator_id)}>
+                            <Text style={{fontFamily:"Poppins-Bold"}}>{item.creator[0].username}</Text>
+                            <Text style={{fontFamily:"Poppins-Light",marginTop:-5}}>Developer</Text>
+                        </TouchableOpacity>
+                </View>
+                <View style={{flexDirection:'row', alignItems:"center"}} >
+                    {ifFollowing.length>0 ?
+                        <TouchableOpacity style={{backgroundColor:"#fff",padding:10,borderRadius:20}} onPress={()=>UnFollowUser(item.creator[0].creator_id)} >
+                            <Text style={{fontFamily:"Poppins-Bold",fontSize:12}}>Following</Text>
+                        </TouchableOpacity>
+                                            :
+                        <TouchableOpacity style={{backgroundColor:"#fff",padding:10,borderRadius:20}} onPress={()=>FollowUser(item.creator[0].creator_id)} >
+                            <Text style={{fontFamily:"Poppins-Bold",fontSize:12}}>Follow</Text>
+                        </TouchableOpacity>
+                        
+                    }
+                    <Entypo name="dots-three-vertical" size={20} color="black" />
+                </View>
+            </View>
+            <View style={styles.imageCont}>
+                <View style={{marginVertical:2}}>
+                    <Text style={{fontFamily:'Poppins-Light'}}>{item.text}</Text>
+                </View>
+                <View>
+                    <Image source={{uri :imgUrl}} style={{borderRadius:5,height:300}}/>
+                </View>
+            </View>
+            <View style={styles.interactions}>
+                <View style={{flexDirection:"row"}}>
+                    <TouchableOpacity style={styles.icons} onPress={() => ifLiked.length>0 ? unlikePost(item._id) : LikePost(item._id)}>
+                        {ifLiked.length>0 ?
+                        <AntDesign name="heart" size={24} color={Colors.light.text}/>
+                                 :
+                        <AntDesign name="hearto" size={24} color="black" />
+                        }
+                        <Text style={styles.iconsText}>{like.length > 0 ? like.length : null}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.icons} onPress={()=>toggleBottomSheet(item._id)}>
+                        <Ionicons name="chatbubble-outline" size={24} color="black" />
+                        <Text style={styles.iconsText}>{comments.length > 0 ? comments.length : null}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.icons}>
+                        <Feather name="send" size={24} color="black" />
+                        <Text style={styles.iconsText}>{like.length > 0 ? like.length : null}</Text>
+                    </TouchableOpacity>
+                </View>
+                <View>
+                    <Feather name="bookmark" size={24} color="black" />
+                </View>
+            </View>
+        </View>
+        )
+    }
+
+
+    return(
+        <View>
+        <ScrollView style={styles.container}
+            refreshControl={
+                <RefreshControl refreshing={refresh} onRefresh={Refresh}/>
+            }
+            
+        >
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.homeHeader}>
+            <View>
+                <Text style={{fontFamily:"PlaywriteSK-Regular",fontSize:25, color:"#d92b68"}}>Fleexy</Text>
+            </View>
+            <View style={{flexDirection:"row"}}>
+                <TouchableOpacity style={styles.headerIcon}> 
+                    <AntDesign name="hearto" size={20} color="black" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.headerIcon} onPress={()=> router.push('/profile')}>
+                    <Feather name="bookmark" size={20} color="black" />
+                </TouchableOpacity>
+            </View>
+        </View>
+        <View>
+        <ScrollView  horizontal style={{paddingLeft:20}}>
+            <View style={styles.contentScroller}>
+                <TouchableOpacity style={{backgroundColor:"#d92b68",
+                                width:65,
+                                height:65,
+                                borderRadius:50,
+                                justifyContent:"center",
+                                alignItems:"center"
+                }}>
+                    <AntDesign name="plus" size={24} color="#fff" />
+                </TouchableOpacity>
+
+                    {Stories && Stories.map((item,index)=>{
+                        return(
+                            <TouchableOpacity style={{marginHorizontal:5}} key={index}>
+                                <View style={{borderWidth:2, borderRadius:50 , borderColor:"#d92b68"}}>
+                                    <Image source={require("../../assets/images/model.jpg")} style={styles.profilePic}/>
+                                </View>
+                                <Text style={{fontFamily:"Poppins-Light"}}>{item.name}</Text>
+                            </TouchableOpacity>
+                        )
+                    })}
+            </View>
+            </ScrollView>
+              
+            <View style={styles.postsContainer}>
+                <FlatList data={posts} renderItem={renderItem}/>
+
+            </View>
+        </View>
+        </ScrollView>
+                    <GestureDetector gesture={gesture}>
+                        <Animated.View style={[styles.bottomSheet,rBottomSheetStyle]}>
+                            <View style={styles.line}></View>
+                            <View style={styles.sheetLayout}>
+                                <View style={{flexDirection:"row",justifyContent:"center",alignItems:"center"}}>
+                                    <View>
+                                        <Text style={{fontFamily:"Poppins-Light",fontSize:18}}>Comments</Text>
+                                    </View>
+                                </View>
+                                <View style={{justifyContent:"space-between",flexDirection:"column"}}>
+                                    <View>
+
+                                        {activeComments && activeComments.length>0?
+                                        activeComments.map((item,index)=>{
+                                            return(
+                                                <View key={index} style={{marginVertical:10}}>
+                                                    <View style={{flexDirection:"row",alignItems:"center"}}>
+                                                        {item.profilePicture 
+                                                                    ?
+                                                        <Image source={{uri:item.profilePicture}} style={{width:50,height:50, borderRadius:50}}/>
+                                                                    :
+
+                                                        <Image source={require('../../assets/images/model.jpg')} style={{width:50,height:50, borderRadius:50}}/>
+                                                    }
+                                                        <View style={{marginHorizontal:5,height:20,justifyContent:"center"}}>
+                                                            <Text style={{fontFamily:"Poppins-Bold"}}>Motion Rades</Text>
+                                                            <Text style={{ fontFamily: "Poppins-Light" }}>{item.message}</Text>
+                                                        </View>
+                                                    </View>
+                                                </View>
+                                            )
+                                        })
+                                        :
+                                        <View style={{alignItems:"center",justifyContent:"center",height:"70%"}}>
+                                            <Text style={{fontFamily:"Poppins-Bold",fontSize:17}}>No Comments Were Found!</Text>
+                                        </View>
+                                        }
+                                    </View>
+                                </View>
+                                </View>
+                        </Animated.View>
+                    </GestureDetector>
+                                    {isSheetOpened &&
+                    
+                                        <View style={{position:"absolute",bottom:0,zIndex:1,backgroundColor:"#fff",width:SCREEN_WIDTH,padding:10,paddingHorizontal:20,flexDirection:"row",justifyContent:"space-between",alignItems:"center",elevation:1,shadowColor:"#000"}}>
+                                            <View style={{backgroundColor:"#f2f2f2",paddingVertical:10,borderRadius:5}}>
+                                                <TextInput placeholder="Type Your Comment." style={{paddingHorizontal:5,fontFamily:"Poppins-Light",width:SCREEN_WIDTH/1.3}} onChangeText={(e) => setComment(e)}/>
+                                            </View>
+                                            <TouchableOpacity style={{backgroundColor:Colors.light.text,borderRadius:50,width:35,height:35,justifyContent:"center",alignItems:"center"}} onPress={CreateComment}>
+                                                <Ionicons name="send-outline" size={20} color="#fff" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    }
+            </View>
+
+    )
+}
+
+
+const styles = StyleSheet.create({
+        container:{
+            backgroundColor:"#fff",
+            height:"100%",
+           paddingTop:40
+        },
+        contentScroller:{
+            flexDirection:"row",
+            marginVertical:5
+        },
+        homeHeader:{
+            paddingHorizontal:20,
+            marginBottom:15,
+            flexDirection:"row",
+            justifyContent:"space-between",
+            alignItems:"center"
+        },
+        profilePic:{
+            width:65,
+            height:65,
+            borderRadius:50,
+            objectFit:"cover",
+            margin:2
+        },
+        posts:{
+            backgroundColor:"#efefef",
+            padding:10,
+            paddingVertical:15,
+            borderRadius:5,
+            marginBottom:25
+        },
+        postHeader:{
+            flexDirection:"row",
+            justifyContent:"space-between",
+            alignItems:"center"
+        },
+        postsContainer:{
+            paddingHorizontal:20,
+            marginVertical:15
+        },
+        imageCont:{
+            marginVertical:10
+        }
+        ,interactions:{
+            marginTop:5,
+            flexDirection:"row",
+            justifyContent:"space-between",
+            alignItems:"center"
+        },
+        icons:{
+            flexDirection:"row",
+            alignItems:"center",
+            marginHorizontal:5
+        },
+        headerIcon:{
+            margin:5,
+            backgroundColor:"#ebe6e6",
+            width:35,
+            height:35,
+            alignItems:"center",
+            justifyContent:"center",
+            borderRadius:50
+        },
+        iconsText:{
+            fontFamily:'Poppins-Light',
+            marginHorizontal:5
+        },
+        bottomSheet:{
+            position:"absolute",
+            width:SCREEN_WIDTH,
+            backgroundColor:"#ffffffff",
+            height:SCREEN_HEIGHT,
+            top:SCREEN_HEIGHT,
+            borderRadius:25,
+            shadowColor:"#000",
+            elevation:10,
+            zIndex:1
+        },
+        line:{
+            width:75,
+            height:4,
+            backgroundColor:"#000",
+            alignSelf:"center",
+            borderRadius:10,
+            marginVertical:10
+        },
+        sheetLayout:{
+            paddingVertical:5,
+            paddingHorizontal:20
+        }
+})
