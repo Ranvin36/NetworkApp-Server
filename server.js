@@ -7,11 +7,10 @@ const chatsRouter = require("./Routes/chat/chatRoute")
 const cors = require("cors")
 const AWS = require("aws-sdk")
 const multer = require("multer")
-const {Server} = require("socket.io")
 const app = express()
 const server = http.createServer(app)
 const port = 3001
-const io = new Server(server);
+const socketIo = require('socket.io')(server)
 require("./config/database")()
 
 const corsOptions = {
@@ -27,6 +26,18 @@ AWS.config.update({
     region:'eu-north-1'
 })
 
+
+
+socketIo.on('connect' , (socket) =>{
+    socketIo.on('chat-message' , (msg) =>{
+        socket.emit('chat-message',msg)
+    })
+
+    socket.on('disconnect' , () =>{
+        socket.disconnect()
+    })
+})
+
 app.use(cors(corsOptions))
 app.use(express.json())
 app.use('/users',userRouter)
@@ -37,4 +48,3 @@ app.use('/snapshot',snapShotRouter)
 
 server.listen(3001, () => {console.log(`Server Running In Port ${port}`)})
 
-module.exports = {io}

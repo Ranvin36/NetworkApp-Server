@@ -1,7 +1,7 @@
 const express = require("express")
 const {register, login, authorize, sendOtp, verifyOtp, addFollower, removeFollower, getUser,getFollowers, searchUser, changeUsername, passwordEmail, resetPassword} =  require('../../controllers/users/userContollers')
 const isLoggin = require("../../middlewares/isLoggin")
-const { deleteUsers } = require("../../controllers/posts/postController")
+const { deleteUsers, searchPosts } = require("../../controllers/posts/postController")
 const userRouter = express.Router()
 
 

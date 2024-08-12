@@ -1,6 +1,6 @@
 const express = require("express")
 const isLoggin = require("../../middlewares/isLoggin")
-const { createPost, getPosts, deletePost, likePost, unlikePost, createComment, deleteComment, getMyPosts, GetLikedPosts } = require("../../controllers/posts/postController")
+const { createPost, getPosts, deletePost, likePost, unlikePost, createComment, deleteComment, getMyPosts, GetLikedPosts, getPostById, UpdatePost, searchPosts } = require("../../controllers/posts/postController")
 const AWS = require("aws-sdk")
 const multer = require("multer")
 const multerS3 = require("multer-s3")
@@ -36,11 +36,14 @@ const upload = multer({
 
 
 
+postRouter.get('/search',isLoggin,searchPosts)
 postRouter.post('/create-post',isLoggin,upload.single('image'),createPost)
 postRouter.post('/upload-profile-pic',isLoggin,upload.single('image'),upadteProfilePic)
 postRouter.get('/get-posts',isLoggin,getPosts)
+postRouter.get('/get-post/:postId',isLoggin,getPostById)
 postRouter.get('/:id',isLoggin,getMyPosts)
 postRouter.post('/liked',isLoggin,GetLikedPosts)
+postRouter.post('/update/:postId',isLoggin,upload.single('image'),UpdatePost)
 postRouter.post('/like-posts/:postId',isLoggin,likePost)
 postRouter.post('/unlike-posts/:postId',isLoggin,unlikePost)
 postRouter.post('/add-comment/:postId',isLoggin,createComment)

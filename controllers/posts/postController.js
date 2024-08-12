@@ -63,6 +63,15 @@ exports.getMyPosts = (async(req,res) =>{
 
 })
 
+exports.getPostById = (async(req,res) =>{
+    const {postId} = req.params
+    const findPost = await Posts.findById(postId)
+    res.json({
+        status:"Success",
+        findPost
+    })
+})
+
 
 exports.deletePost = (async(req,res)=>{
     const {ids} = req.body
@@ -159,5 +168,31 @@ exports.GetLikedPosts = (async(req,res) => {
     console.log(getLikedPosts)
     res.json({
         data:getLikedPosts
+    })
+})
+
+exports.UpdatePost = (async(req,res) => {
+    const {postId} = req.params
+    const {text} = req.body
+    const image = req.file.location ? req.file.location : null
+    const findPost = await Posts.findById(postId)
+    findPost.text =  text
+    findPost.image =  image
+    await findPost.save()
+
+    res.status(204).json({
+        status:"Success",
+        message:"Post Updated Successfully"
+    })
+})
+
+exports.searchPosts = (async(req,res) =>{
+    const {title} = req.query
+    console.log(title)
+    const findPost = await Posts.find({text:{$regex : String(title) , $options:'i'}}) 
+
+    res.json({
+        status:"Success",
+        findPost
     })
 })
