@@ -24,20 +24,21 @@ exports.SendMessage  = (async(req,res) => {
         findChatRoom = new ChatRoom({
             members:member,
             creatorData,
-            receiverData
+            receiverData,
+            lastMessage:message
         })
         await findChatRoom.save()
         console.log(findChatRoom)
     }
-
+    
+    
     const sendMessage = new Message({
         chatRoom:findChatRoom._id,
         senderId:_id,
         message
     })
-
-    console.log(sendMessage)
-
+    findChatRoom.lastMessage = "ABCD"
+    await findChatRoom.save()
     await sendMessage.save()
 
     res.json({
@@ -74,7 +75,7 @@ exports.getMessage = (async(req,res) => {
 exports.getChats = (async(req,res) =>{
     const {_id} = req.userAuth
 
-    const findChats = await ChatRoom.find({members:_id})
+    const findChats = await ChatRoom.find({members:_id,deletedBy:{$ne:_id}})
 
     if(!findChats){
         console.log("NO chats Available")
@@ -85,4 +86,33 @@ exports.getChats = (async(req,res) =>{
         status:"Successful",
         findChats
     })
+})
+
+
+exports.deleteChat = (async(req,res) => {
+    const {id} = req.body
+    const {_id} = req.userAuth
+    const updateChat = await ChatRoom.findByIdAndUpdate(id,{
+        $addToSet:{deletedBy:_id}
+    })
+    
+    updateChat.save()
+    
+    res.status(201).json({
+        status:"Success",
+        message:"Chat Deleted Successfully"
+    })
+    
+})
+
+exports.deleteMessage = (async(req,res) => {
+    const {id} = req.body
+    const {_id} = req.userAuth
+    const findMessage = await Message.findByIdAndDelete(id)
+
+    res.status(204).json({
+        status:"Successful",
+        message:"Message Deleted Successfully"
+    })
+
 })

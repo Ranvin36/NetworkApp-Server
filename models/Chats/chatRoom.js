@@ -15,7 +15,12 @@ const UserSchema = mongoose.Schema({
 const ChatRoomSchema = mongoose.Schema({
     members:[{type:mongoose.Schema.Types.ObjectId}],
     creatorData:[UserSchema],
-    receiverData:[UserSchema]
+    receiverData:[UserSchema],
+    lastMessage:{
+        type:String,
+        default:""
+    },
+    deletedBy:[{type:mongoose.Schema.Types.ObjectId}]
 
 },{
     timestamp:true

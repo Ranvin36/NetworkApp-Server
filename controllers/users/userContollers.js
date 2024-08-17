@@ -6,6 +6,7 @@ const twilio = require("twilio")
 const {Vonage} = require("@vonage/server-sdk") 
 const SendEmail = require("../../Utils/SendEmail")
 const mongoose = require("mongoose")
+const jwt = require("jsonwebtoken")
 
 exports.register = (async(req,res)=>{
     console.log("Recieved")
@@ -292,3 +293,25 @@ exports.resetPassword = (async(req,res) => {
     })
     
 })
+
+exports.verifyToken = (async(req,res) => {
+    console.log(req.headers.authorization)
+    const getToken = req.headers.authorization.split(" ")[1]
+    jwt.verify(getToken ,"anykey" , async(err,decode)=> {
+        const userId = decode?.user?.id
+        const userExists = await User.findById(userId)
+            if(userExists){
+                res.status(200).json({
+                    status:"Success",
+                    message:"Valid Token"
+                })
+            }
+            else{
+                res.status(204).json({
+                    status:"Unsuccessul",
+                    message:"Invalid Token"
+                })
+                
+            }
+        })
+    })
