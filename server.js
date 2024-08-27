@@ -4,9 +4,11 @@ const userRouter = require('./Routes/User/userRouter')
 const postRouter = require("./Routes/Posts/postRouter")
 const snapShotRouter = require("./Routes/Posts/snapShotRouter")
 const chatsRouter = require("./Routes/chat/chatRoute")
+const reelsRouter = require("./Routes/Clips/clipRoutes")
 const ChatRoom = require("./models/Chats/chatRoom")
 const Message = require("./models/Chats/message")
 const User = require("./models/User/user")
+const Posts = require("./models/Posts/Posts")
 const cors = require("cors")
 const AWS = require("aws-sdk")
 const multer = require("multer")
@@ -72,7 +74,7 @@ io.on("connection", socket =>{
                 findChatRoom = new ChatRoom({
                     members:member,
                     creatorData,
-                    receiverData
+                    receiverData,
                 })
                 await findChatRoom.save()
             }
@@ -83,8 +85,9 @@ io.on("connection", socket =>{
                 message
             })
         
-            console.log(sendMessage)
-        
+            findChatRoom.lastMessage = message
+            await findChatRoom.save()
+
             await sendMessage.save().then(() => {
                 io.emit("receiveMessasge" ,sendMessage)
             })
@@ -95,6 +98,47 @@ io.on("connection", socket =>{
             //     sendMessage
             // })
         }
+    })
+    socket.on("likePost" , async(data) =>{
+        const findPost = await Posts.findByIdAndUpdate(data.postId,{
+            $push:{likes:data.userId}
+        })
+       const findUser = await User.findByIdAndUpdate(data.userId , {
+            $push:{likes:data.postId}
+       })
+
+       io.emit("receivePost",data)
+
+    })
+
+    socket.on("unlikePost",  async(data) =>{
+        const ifLiked = await Posts.findByIdAndUpdate(data.postId,{
+            $pull:{likes:data.userId}
+        })
+        const ifLikedFromUser = await User.findByIdAndUpdate(data.userId,{
+            $pull:{likes:data.userId}
+        })
+        
+        io.emit("receiveUnlikedPost",data)
+    })
+
+    socket.on("createComment", async(data) => {
+        console.log(data)
+        const {postId,message,userId} = data
+        const findPost = await Posts.findById(postId) 
+        const findUser = await User.findById(userId)
+        const uploadComment = {
+             userId:userId,
+             username:findUser.username,
+             message,
+             profilePicture:findUser.profilePicture
+        }
+        console.log(uploadComment)
+     
+        findPost.comments.push(uploadComment)
+        await findPost.save()
+
+        io.emit("receiveComment",uploadComment)
     })
 
     socket.on('disconnect' , () =>{
@@ -107,6 +151,7 @@ app.use(express.json())
 app.use('/users',userRouter)
 app.use('/posts',postRouter)
 app.use('/chats',chatsRouter)
+app.use('/reels',reelsRouter)
 app.use('/snapshot',snapShotRouter)
 
 

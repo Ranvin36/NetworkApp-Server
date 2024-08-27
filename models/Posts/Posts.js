@@ -49,6 +49,7 @@ const PostSchema = mongoose.Schema({
         default:""
     },
     likes:[{type:mongoose.Types.ObjectId}],
+    bookmarks:[{type:mongoose.Types.ObjectId}],
     comments:[CommentSchema]
 
 },{

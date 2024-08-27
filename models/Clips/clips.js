@@ -11,8 +11,28 @@ const UserSchema = mongoose.Schema({
         default:""
         }
 })
+
+const CommentSchema = mongoose.Schema({
+    userId:{
+        type:mongoose.Schema.Types.ObjectId,
+        required:true
+    },
+    username:{
+        type:String,
+        required:true
+    },
+    message:{
+        type:String,
+        required:true 
+    },
+    profilePicture:{
+        type:String,
+    }
+})
+
+
 const ClipsSchema = mongoose.Schema({
-    user:{UserSchema},
+    user:[UserSchema],
     media:{
         type:String,
         default:""
@@ -20,7 +40,12 @@ const ClipsSchema = mongoose.Schema({
     text:{
         type:String,
         default:""
-    }
+    },
+    likes:[{type:mongoose.Types.ObjectId}],
+    bookmarks:[{type:mongoose.Types.ObjectId}],
+    comments:[CommentSchema]
+},{
+    timestamps:true
 })
 
 

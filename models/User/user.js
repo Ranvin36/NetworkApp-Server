@@ -38,8 +38,14 @@ const UserSchema = mongoose.Schema({
         default: "https://socialmediastorage123.s3.eu-north-1.amazonaws.com/images/user.jpg"
     },
     likes:[{type:mongoose.Schema.Types.ObjectId}],
+    bookmarks: [{type:mongoose.Schema.Types.ObjectId}],
     followers: [FollowerSchema],
-    following: [FollowerSchema]
+    following: [FollowerSchema],
+    blocked:[FollowerSchema],
+    refreshToken:{
+        type:String,
+        default:""
+    }
 }, {
     timestamps: true
 });

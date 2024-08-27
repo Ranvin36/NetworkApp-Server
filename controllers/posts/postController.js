@@ -171,6 +171,15 @@ exports.GetLikedPosts = (async(req,res) => {
     })
 })
 
+exports.GetBookmarkedPosts = (async(req,res) =>{
+    const {IDS} = req.body
+    console.log(IDS , "IDS")
+    const getBookmarks = await Posts.find({_id:{$in:IDS}})
+    res.json({
+        data:getBookmarks
+    })
+})
+
 exports.UpdatePost = (async(req,res) => {
     const {postId} = req.params
     const {text} = req.body
@@ -194,5 +203,41 @@ exports.searchPosts = (async(req,res) =>{
     res.json({
         status:"Success",
         findPost
+    })
+})
+
+exports.createBookmark = (async(req,res) => {
+    const {postId} = req.params
+    const {_id} = req.userAuth
+    console.log(postId,_id)
+
+    const findPost = await Posts.findByIdAndUpdate(postId ,{
+        $push:{bookmarks:_id}
+    })
+
+    const findUser = await User.findByIdAndUpdate(_id,{
+        $push:{bookmarks:postId}
+    })
+    res.status(201).json({
+        status:"Successful",
+        message:"Bookmark Created Succesfully"
+    })
+})
+
+exports.removeBookmark = (async(req,res) => {
+    const {postId} = req.params
+    const {_id} = req.userAuth
+
+    const removeFromPost = await Posts.findByIdAndUpdate(postId,{
+        $pull:{bookmarks:_id}
+    })
+
+    const removeFromUser = await User.findByIdAndUpdate(_id,{
+        $pull:{bookmarks:postId}
+    })
+
+    res.json({
+        status:"Successful",
+        message:"Bookmark Deleted Successfully"
     })
 })

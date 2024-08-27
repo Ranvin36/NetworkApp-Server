@@ -28,7 +28,6 @@ exports.SendMessage  = (async(req,res) => {
             lastMessage:message
         })
         await findChatRoom.save()
-        console.log(findChatRoom)
     }
     
     
@@ -56,7 +55,6 @@ exports.getMessage = (async(req,res) => {
     const member =  [opponentId,_id]
     const findChat = await ChatRoom.findOne({members:{$all:member}})
     if(findChat){
-        console.log(member)
         const findMessages = await Message.find({chatRoom:findChat._id})
         res.json({
             status:"Successful",
@@ -107,12 +105,30 @@ exports.deleteChat = (async(req,res) => {
 
 exports.deleteMessage = (async(req,res) => {
     const {id} = req.body
-    const {_id} = req.userAuth
-    const findMessage = await Message.findByIdAndDelete(id)
+    const findMessage = await Message.deleteMany({_id:{$in:id}})
 
     res.status(204).json({
         status:"Successful",
         message:"Message Deleted Successfully"
     })
 
+})
+exports.blockChat= (async(req,res) =>{
+    const {blockId} = req.params
+    const findBlockUser = await User.findById(blockId)
+    const blockUserData = {
+        userId:blockId,
+        username:findBlockUser.username,
+        profilePicture:findBlockUser.profilePicture
+    }
+    const updateUser = await findByIdAndUpdate(blockId, {
+        $push:{blocked:blockUserData}
+    })
+
+    await updateUser.save()
+
+    res.status(200).json({
+        status:"Success",
+        message:"User Blocked Successully"
+    })
 })

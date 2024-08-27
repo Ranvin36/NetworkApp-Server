@@ -1,7 +1,7 @@
 //oYUBfOBLfnJgVwxT
 const User = require("../../models/User/user")
 const bcrypt = require("bcryptjs")
-const generateToken = require("../../Utils/GenerateToken")
+const {generateToken,generateRefreshToken} = require("../../Utils/GenerateToken")
 const twilio = require("twilio")
 const {Vonage} = require("@vonage/server-sdk") 
 const SendEmail = require("../../Utils/SendEmail")
@@ -57,6 +57,9 @@ exports.login = (async(req,res)=>{
         })
         return
     }
+    const refreshToken = await generateRefreshToken(findUser)
+    findUser.refreshToken = refreshToken
+    await findUser.save()
     res.status(201).json({
         status:"Successful",
         message:"Login Successful",
@@ -64,6 +67,24 @@ exports.login = (async(req,res)=>{
         token:generateToken(findUser)
     })
     return 
+})
+
+exports.refreshToken= (async(req,res) =>{
+    const {refreshToken} = req.body
+    console.log(refreshToken, "REFRESH")
+    jwt.verify(refreshToken,'refresh',async(err,decode) =>{
+        const findUser = await User.findById(decode.user.id)
+        if(!findUser){
+            return res.status(401)
+        }
+        res.json({
+            status:"Successful",
+            message:"ABCD",
+            data:findUser,
+            token:generateToken(findUser)
+        })
+    })
+
 })
 
 
@@ -315,3 +336,47 @@ exports.verifyToken = (async(req,res) => {
             }
         })
     })
+
+exports.blockUser = (async(req,res) =>{
+    const {_id} = req.userAuth
+    const {opponentId} = req.params
+    const findUser = await User.findById(opponentId)
+    const data = {
+        userId:opponentId,
+        username:findUser.username,
+        profilePicture:findUser.profilePicture,
+    }
+    console.log(data)
+    const findUserAndUpdate = await User.findByIdAndUpdate(_id,{
+        $addToSet:{blocked:data}
+    })
+
+    res.status(200).json({
+        status:"Successful",
+        message:"User Blocked Successfully"
+    })
+})
+
+
+exports.GetBlockedUsers = (async(req,res) =>{
+    const {_id} = req.userAuth
+    const findBlocked = await User.findById(_id).select("blocked")
+    res.json({
+        status:"Success",
+        findBlocked
+    })
+})
+
+exports.UnblockUser = (async(req,res) => {
+    const {opponentId} = req.params;
+    const {_id} = req.userAuth;
+
+    const findUserAndUpdate = await User.findByIdAndUpdate(_id, {
+        $pull: {blocked: {userId: new mongoose.Types.ObjectId(opponentId)}}}
+    );
+
+    res.json({
+        status: "Success",
+        message: "User Unblocked Successfully"
+    });
+});
