@@ -33,6 +33,10 @@ const UserSchema = mongoose.Schema({
         type: Date,
         default: Date.now()
     },
+    bio:{
+        type: String,
+        default:""
+    },
     profilePicture: {
         type: String,
         default: "https://socialmediastorage123.s3.eu-north-1.amazonaws.com/images/user.jpg"

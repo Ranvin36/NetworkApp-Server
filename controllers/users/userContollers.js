@@ -1,5 +1,6 @@
 //oYUBfOBLfnJgVwxT
 const User = require("../../models/User/user")
+const Posts = require("../../models/Posts/Posts")
 const bcrypt = require("bcryptjs")
 const {generateToken,generateRefreshToken} = require("../../Utils/GenerateToken")
 const twilio = require("twilio")
@@ -9,9 +10,7 @@ const mongoose = require("mongoose")
 const jwt = require("jsonwebtoken")
 
 exports.register = (async(req,res)=>{
-    console.log("Recieved")
     const {username,email,password} = req.body
-    console.log(username)
     const userAlreadyFound = await User.findOne({email})
     if(userAlreadyFound){
         res.status(404).json({
@@ -39,7 +38,6 @@ exports.register = (async(req,res)=>{
 
 
 exports.login = (async(req,res)=>{
-    console.log("Inside")
     const {email,password} = req.body
     const findUser = await User.findOne({email})
     if(!findUser){
@@ -71,7 +69,6 @@ exports.login = (async(req,res)=>{
 
 exports.refreshToken= (async(req,res) =>{
     const {refreshToken} = req.body
-    console.log(refreshToken, "REFRESH")
     jwt.verify(refreshToken,'refresh',async(err,decode) =>{
         const findUser = await User.findById(decode.user.id)
         if(!findUser){
@@ -89,7 +86,6 @@ exports.refreshToken= (async(req,res) =>{
 
 
 exports.getUser = (async(req,res)=>{
-    console.log("INSIDE2")
     const {id} = req.params
     const findUser = await User.findOne({_id:id})
 
@@ -124,9 +120,6 @@ exports.verifyOtp = (async(req,res)=>{
     const {sentOtp,receivedOtp} = req.body
     let receivedOtpString = receivedOtp.toString()
     receivedOtpString=receivedOtpString.replace(/,/g ,'')
-    console.log(sentOtp,receivedOtpString)
-
-
     try{
         if(sentOtp == receivedOtpString){
             res.status(201).json({
@@ -150,7 +143,6 @@ exports.addFollower = (async(req,res)=>{
     const findMe = await User.findById(_id)
     const findOpponent = await User.findById(opponentId)
     if(_id == opponentId){
-        console.log(_id , opponentId)
         res.status(404).json({
             message:"You cannot follow yourself"
         })
@@ -179,7 +171,6 @@ exports.addFollower = (async(req,res)=>{
         username:findMe.username,
         profilePicture:findMe.profilePicture,
     }
-    console.log(Followerdata , Followingdata)
 
 
     findOpponent.followers.push(Followerdata) 
@@ -198,7 +189,6 @@ exports.removeFollower = (async(req,res)=>{
     const opponentId = req.params.opponentId
     const findUser = await User.findById(_id)
     const opponentUser  = await User.findById(opponentId)
-    console.log(opponentUser, _id)
     opponentUser.followers = opponentUser.followers.filter((item) => item.username != username)
     findUser.following = findUser.following.filter((item) => item.userId.toString() !== opponentId)
     await findUser.save()
@@ -213,10 +203,8 @@ exports.removeFollower = (async(req,res)=>{
 
 exports.upadteProfilePic = (async(req,res)=>{
     const {_id} = req.userAuth
-    console.log("INSIDE")
     const file = req.file && req.file.location
     const findUser = await User.findById({_id})
-    console.log(findUser,file)
     findUser.profilePicture = file
     await findUser.save()
 
@@ -281,7 +269,6 @@ exports.changeUsername = (async(req,res) => {
 
 exports.passwordEmail = (async(req,res) =>  {
     const {email} = req.body
-    console.log(email)
     const findUser = await User.find({email})
     if(!findUser){
         return
@@ -316,7 +303,6 @@ exports.resetPassword = (async(req,res) => {
 })
 
 exports.verifyToken = (async(req,res) => {
-    console.log(req.headers.authorization)
     const getToken = req.headers.authorization.split(" ")[1]
     jwt.verify(getToken ,"anykey" , async(err,decode)=> {
         const userId = decode?.user?.id
@@ -346,7 +332,6 @@ exports.blockUser = (async(req,res) =>{
         username:findUser.username,
         profilePicture:findUser.profilePicture,
     }
-    console.log(data)
     const findUserAndUpdate = await User.findByIdAndUpdate(_id,{
         $addToSet:{blocked:data}
     })
@@ -380,3 +365,34 @@ exports.UnblockUser = (async(req,res) => {
         message: "User Unblocked Successfully"
     });
 });
+
+exports.EditUser = (async(req,res) =>{
+    console.log("EditUser")
+    const {_id} = req.userAuth
+    const {username,bio} = req.body
+    const findUser = await User.findById(_id)
+    if(bio){
+        findUser.bio = bio
+    }
+    findUser.username = username
+    if(req.file){
+        findUser.profilePicture = req.file.location
+
+    }
+    await findUser.save()
+
+    res.status(200).json({
+        status:"Success",
+        message:"Profile Updated Successfully"
+    })
+})
+
+
+exports.GetBookmarksForUser = (async(req,res) =>{
+    const {_id} = req.userAuth
+    const findUser = await User.findById(_id)
+    const getBookmarks = await Posts.find({_id:{$in:findUser.bookmarks}}).select("creator text description updatedAt")
+    res.json({
+        data:getBookmarks
+    })
+})

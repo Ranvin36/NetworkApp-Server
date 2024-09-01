@@ -1,15 +1,18 @@
 const Posts = require("../../models/Posts/Posts")
 const User = require("../../models/User/user")
 const {io} = require("../../server")
+// const Redis  = require("redis")
+// const redis = Redis.createClient({
+//     host:'localhost',
+//     port:6379,
+// })
 exports.createPost = (async(req,res)=>{
-    console.log("INSIDE POST")
     const {text,description} = req.body
     const {_id,username} = req.userAuth
     const findMe = await User.findById(_id)
     let imageUrl = null
     let videoUrl= null
     const fileType = req.file.mimetype.split("/")[0]
-    console.log(req.file,fileType)
     if(fileType == "video"){
         videoUrl =  req.file? req.file.location : null
     }   
@@ -40,11 +43,12 @@ exports.createPost = (async(req,res)=>{
 })
 
 exports.getPosts = (async(req,res)=>{
+    const {_id} = req.userAuth
     const page = req.query.page - 1
     const limit = 3
     const skipPage = page*limit
-    
-    const AllPosts = await Posts.find().limit(limit).skip(skipPage)
+    const findUser = await User.findById(_id)
+    const AllPosts = await Posts.find({"creator.creator_id":{$ne:findUser?.blocked[0]?.userId}}).limit(limit).skip(skipPage)
     res.json({
         status:"Success",
         data:AllPosts
@@ -53,9 +57,7 @@ exports.getPosts = (async(req,res)=>{
 
 exports.getMyPosts = (async(req,res) =>{
     const {id} = req.params
-    console.log("FROM SERVER")
     const postsByCreatorId = await Posts.find({ "creator.creator_id": id });
-    console.log(postsByCreatorId)
     res.json({
         status:"Success",
         data:postsByCreatorId
@@ -76,7 +78,6 @@ exports.getPostById = (async(req,res) =>{
 exports.deletePost = (async(req,res)=>{
     const {ids} = req.body
     const findPost = await Posts.deleteMany({_id:{$in:ids}})
-    console.log(findPost)
     res.status(201).json({
         status:"Success",
         message:"Posts Deleted Successfully",
@@ -102,7 +103,6 @@ exports.likePost = (async(req,res)=>{
    const findUser = await User.findByIdAndUpdate(req.userAuth._id , {
         $push:{likes:postId}
    })
-   console.log(findUser)
 
     res.status(201).json({
         status:"Success",
@@ -138,7 +138,6 @@ exports.createComment = (async(req,res)=>{
         message,
         profilePicture:findUser.profilePicture
    }
-   console.log(uploadComment)
 
    findPost.comments.push(uploadComment)
    await findPost.save()
@@ -154,7 +153,6 @@ exports.deleteComment = (async(req,res)=>{
     const {id} = req.params
     const post = await Posts.findOne({ "comments._id": id });
     post.comments = post.comments.filter((comment) => comment._id != id)
-    console.log(post , "Comment")
     await post.save()
     res.json({
         status:"Success"
@@ -163,9 +161,22 @@ exports.deleteComment = (async(req,res)=>{
 
 exports.GetLikedPosts = (async(req,res) => {
     const { IDS } =  req.body
-    console.log(IDS)
+    // const cachingEndPoint = `liked:${IDS.join(',')}`
+    // if(!redis.isOpen){
+    //     await redis.connect()
+    // }
+    // const cachedData = await redis.get(cachingEndPoint)
+
+    // if(cachedData){
+    //     console.log("INSIDE CACHING")
+    //     return res.json({
+    //         data:JSON.parse(cachedData)
+    //         }
+    //     )
+    // }
     const getLikedPosts = await Posts.find({_id: {$in:IDS}})
-    console.log(getLikedPosts)
+    console.log("NOT INSIDE CACHING")
+    // await redis.set(cachingEndPoint,JSON.stringify(getLikedPosts),'EX',3600)
     res.json({
         data:getLikedPosts
     })
@@ -173,7 +184,7 @@ exports.GetLikedPosts = (async(req,res) => {
 
 exports.GetBookmarkedPosts = (async(req,res) =>{
     const {IDS} = req.body
-    console.log(IDS , "IDS")
+
     const getBookmarks = await Posts.find({_id:{$in:IDS}})
     res.json({
         data:getBookmarks
