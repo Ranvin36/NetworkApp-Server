@@ -96,7 +96,7 @@ exports.getUser = (async(req,res)=>{
 
 exports.searchUser = (async(req,res)=>{
     const {name} = req.body
-    const findUser = await User.find({username:{$regex : name , $options:'i'}})
+    const findUser = await User.find({username:{$regex : name , $options:'i'}}).select("_id username profilePicture email")
 
     res.json({
         data:findUser
@@ -367,7 +367,6 @@ exports.UnblockUser = (async(req,res) => {
 });
 
 exports.EditUser = (async(req,res) =>{
-    console.log("EditUser")
     const {_id} = req.userAuth
     const {username,bio} = req.body
     const findUser = await User.findById(_id)

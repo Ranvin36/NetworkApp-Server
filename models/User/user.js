@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 const Posts = require("../Posts/Posts")
+const SnapShot = require("../Posts/SnapShot")
+const ChatRoom = require("../Chats/chatRoom")
 const FollowerSchema = mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -82,9 +84,17 @@ UserSchema.post('save', async function (doc){
             {"creator.username" : userName},
             {$set: {"creator.$.profilePicture" :profilePicture}}
         )
-        await Posts.updateMany(
-            {"comments.username" : userName},
-            {$set: {"comments.$.profilePicture" :profilePicture}}
+        await SnapShot.updateMany(
+            {"creator.username" : userName},
+            {$set: {"creator.$.profilePicture" :profilePicture}}
+        )
+        await ChatRoom.updateMany(
+            {"creatorData.username" : userName},
+            {$set: {"creatorData.$.profilePicture" :profilePicture}}
+        )
+        await ChatRoom.updateMany(
+            {"receiverData.username" : userName},
+            {$set: {"receiverData.$.profilePicture" :profilePicture}}
         )
         console.log("UPDATED")
         
@@ -121,6 +131,14 @@ UserSchema.post('save', async function (doc){
         await Posts.updateMany(
             {"comments.userId" : userId},
             {$set: {"comments.$.username" :userName}}
+        )
+        await SnapShot.updateMany(
+            {"creator.creator_id" : userId},
+            {$set: {"creator.$.username" :userName}}
+        )
+        await ChatRoom.updateMany(
+            {"creatorData.userId" : userId},
+            {$set: {"creatorData.$.username" :userName}}
         )
         console.log("UPDATED")
         

@@ -39,7 +39,7 @@ const upload = multer({
 
 postRouter.get('/search',isLoggin,searchPosts)
 postRouter.post('/create-reel',isLoggin,upload.single('image'),createClip)
-postRouter.post('/create-post',isLoggin,upload.single('image'),createPost)
+postRouter.post('/create-post',isLoggin,upload.array('image',10),createPost)
 postRouter.post('/upload-profile-pic',isLoggin,upload.single('image'),upadteProfilePic)
 postRouter.get('/get-posts',isLoggin,getPosts)
 postRouter.get('/get-post/:postId',isLoggin,getPostById)

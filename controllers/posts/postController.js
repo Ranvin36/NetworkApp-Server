@@ -10,16 +10,16 @@ exports.createPost = (async(req,res)=>{
     const {text,description} = req.body
     const {_id,username} = req.userAuth
     const findMe = await User.findById(_id)
-    let imageUrl = null
     let videoUrl= null
-    const fileType = req.file.mimetype.split("/")[0]
-    if(fileType == "video"){
-        videoUrl =  req.file? req.file.location : null
-    }   
-    else{
-        imageUrl = req.file? req.file.location : null
+    // if(fileType == "video"){
+    //     videoUrl =  req.file? req.file.location : null
+    // }   
+    // else{
+    //     imageUrl = req.file? req.file.location : null
 
-    } 
+    // } 
+    const imageUrl =  req.files ? req.files.map((file) => file.location) :null
+
     const creator={
         creator_id:_id,
         username:username,
@@ -175,7 +175,6 @@ exports.GetLikedPosts = (async(req,res) => {
     //     )
     // }
     const getLikedPosts = await Posts.find({_id: {$in:IDS}})
-    console.log("NOT INSIDE CACHING")
     // await redis.set(cachingEndPoint,JSON.stringify(getLikedPosts),'EX',3600)
     res.json({
         data:getLikedPosts
