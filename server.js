@@ -15,6 +15,7 @@ const multer = require("multer")
 const app = express()
 const server = http.createServer(app)
 const socket =  require("socket.io")
+const mongoose = require("mongoose")
 const io = socket(server)
 const port = 3001
 require("./config/database")()
@@ -140,7 +141,15 @@ io.on("connection", socket =>{
 
         io.emit("receiveComment",uploadComment)
     })
-
+    
+    socket.on("unBlockUser" , async(data) =>{
+        const {userId, opponentId} = data
+        const findUserAndUpdate = await User.findByIdAndUpdate(userId, {
+            $pull: {blocked: {userId: new mongoose.Types.ObjectId(opponentId)}}}
+        );
+        console.log(data)
+        io.emit("receiveUnblockUser",data)  
+    })
     socket.on('disconnect' , () =>{
         console.log("User disconnected")
     })

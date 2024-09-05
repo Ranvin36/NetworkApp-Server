@@ -4,23 +4,39 @@ exports.CreateSnapShot = (async(req,res) => {
     console.log("INSIDE")
     const {text} = req.body
     const {_id,username,profilePicture} = req.userAuth
+    const findSnapShots = await SnapShot.findOne({"creator.creator_id" : _id})
     const fileLocation  = req.file ? req.file.location : null
-    console.log(fileLocation)
-    const creatorData={
-        creator_id:_id,
-        username,
-        profilePicture
+    if(findSnapShots != null){
+        const data={
+            text,
+            image:fileLocation
+        }
+        findSnapShots.snaps.push(data)
+
+        await findSnapShots.save()
     }
+    else{
+        console.log(fileLocation)
+        const creatorData={
+            creator_id:_id,
+            username,
+            profilePicture
+        }
 
-    const newSnapShot = new SnapShot({
-        creator:creatorData,
-        text,
-        image:fileLocation,
-    }) 
-
-    console.log(newSnapShot)
-
-    await newSnapShot.save()
+        const snap={
+            text,
+            image:fileLocation
+        }
+    
+        const newSnapShot = new SnapShot({
+            creator:creatorData,
+            snaps:snap
+        }) 
+    
+        console.log(newSnapShot)
+    
+        await newSnapShot.save()
+    }
 
     res.status(201).json({
         status:"Success",

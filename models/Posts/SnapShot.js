@@ -11,8 +11,7 @@ const creatorSchema = mongoose.Schema({
     }
 })
 
-const SnapShotSchema = mongoose.Schema({
-    creator:[creatorSchema],
+const SnapsSchema = mongoose.Schema({
     text:{
         type:String,
         default:""
@@ -25,8 +24,11 @@ const SnapShotSchema = mongoose.Schema({
         type:String,
         default:""
     }
+})
 
-
+const SnapShotSchema = mongoose.Schema({
+    creator:[creatorSchema],
+    snaps:[SnapsSchema]
 },{
     timestamps:true
 })
