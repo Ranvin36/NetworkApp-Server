@@ -141,6 +141,32 @@ io.on("connection", socket =>{
 
         io.emit("receiveComment",uploadComment)
     })
+
+    socket.on("createBookmark" , async(data) => {
+        const{userId,postId} =  data
+        const findPost = await Posts.findByIdAndUpdate(postId ,{
+            $push:{bookmarks:userId}
+        })
+    
+        const findUser = await User.findByIdAndUpdate(postId,{
+            $push:{bookmarks:userId}
+        })
+
+        io.emit("receiveBookmark",data)
+    })
+
+    socket.on("removeBookmark" , async(data) => {
+        const {postId,userId} = data
+    
+        const removeFromPost = await Posts.findByIdAndUpdate(postId,{
+            $pull:{bookmarks:userId}
+        })
+    
+        const removeFromUser = await User.findByIdAndUpdate(userId,{
+            $pull:{bookmarks:postId}
+        })
+        io.emit("receiveRemoveBookmark",data)
+    })
     
     socket.on("unBlockUser" , async(data) =>{
         const {userId, opponentId} = data
