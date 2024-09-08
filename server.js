@@ -148,8 +148,8 @@ io.on("connection", socket =>{
             $push:{bookmarks:userId}
         })
     
-        const findUser = await User.findByIdAndUpdate(postId,{
-            $push:{bookmarks:userId}
+        const findUser = await User.findByIdAndUpdate(userId,{
+            $push:{bookmarks:postId}
         })
 
         io.emit("receiveBookmark",data)

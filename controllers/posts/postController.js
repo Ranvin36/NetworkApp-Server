@@ -10,7 +10,9 @@ exports.createPost = (async(req,res)=>{
     const {text,description} = req.body
     const {_id,username} = req.userAuth
     const findMe = await User.findById(_id)
-    let videoUrl= null
+    // const fileType = req.file.mimetype.split("/")[0]
+    let videoUrl= []
+    let imageUrl = []
     // if(fileType == "video"){
     //     videoUrl =  req.file? req.file.location : null
     // }   
@@ -18,7 +20,20 @@ exports.createPost = (async(req,res)=>{
     //     imageUrl = req.file? req.file.location : null
 
     // } 
-    const imageUrl =  req.files ? req.files.map((file) => file.location) :null
+    // req.files.forEach((file) =>{
+    //     if(file.mimetype.split("/")[0] == "video"){
+    //         videoUrl.push(file.location)
+    //     }
+    //     else{
+    //         imageUrl.push(file.location)
+    //     }
+    // })
+    // const imageUrl =  req.files ? req.files.map((file) => file.location) :null
+    const media = req.files ? req.files.map((file) =>({
+        uri: file.location,
+        mediaType: file.mimetype.split("/")[0]
+    })) : null
+    console.log(media ,"VIDEOS")
 
     const creator={
         creator_id:_id,
@@ -29,8 +44,7 @@ exports.createPost = (async(req,res)=>{
         creator,
          text,
          description,
-         image:imageUrl,
-         video:videoUrl
+         media
     })
 
     console.log(newPost)
@@ -182,9 +196,12 @@ exports.GetLikedPosts = (async(req,res) => {
 })
 
 exports.GetBookmarkedPosts = (async(req,res) =>{
+    console.log("INSIDE  BOOKMARKS")
     const {IDS} = req.body
+    const  {_id} =  req.userAuth
 
     const getBookmarks = await Posts.find({_id:{$in:IDS}})
+    console.log(getBookmarks)
     res.json({
         data:getBookmarks
     })

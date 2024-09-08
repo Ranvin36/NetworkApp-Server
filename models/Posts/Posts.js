@@ -30,6 +30,17 @@ const CommentSchema = mongoose.Schema({
     }
 })
 
+const mediaSchema = mongoose.Schema({
+    uri:{
+        type:String,
+        default:""
+    },
+    mediaType:{
+        type:String,
+        default:""
+    }
+})
+
 const PostSchema = mongoose.Schema({
     creator : [creatorSchema],
     text:{
@@ -40,14 +51,7 @@ const PostSchema = mongoose.Schema({
         type:String,
         default:""
     },
-    image:[{
-        type:String,
-        default:""
-    }],
-    video:{
-        type:String,
-        default:""
-    },
+    media:[mediaSchema],
     likes:[{type:mongoose.Types.ObjectId}],
     bookmarks:[{type:mongoose.Types.ObjectId}],
     comments:[CommentSchema]
