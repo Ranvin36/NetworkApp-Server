@@ -1,4 +1,5 @@
 const Clips = require('../../models/Clips/clips')
+const User = require('../../models/User/user')
 
 exports.createClip = (async(req,res) =>{
     console.log("JJJ")
@@ -49,6 +50,7 @@ exports.likeClip = (async(req,res) =>{
     const  {clipId}=  req.params
     const  {_id} = req.userAuth
     const alreadyExists = await Clips.find({likes:_id})
+    console.log("INSIDE")
     if(alreadyExists != null){
         res.json({
             status:"Unsuccessfull",
@@ -59,6 +61,9 @@ exports.likeClip = (async(req,res) =>{
         $push:{likes:_id}
     })
 
+    const findUserAndUpdate = await User.findByIdAndUpdate(_id,{
+        $push:{clips:clipId}
+    })
     res.status(200).json({
         status:"Success",
         message:"Clip Liked Successfully"
@@ -70,6 +75,9 @@ exports.UnlikeClip = (async(req,res) => {
     const  {_id} = req.userAuth
     const removeLike = await Clips.findByIdAndUpdate(clipId,{
         $pull:{likes:_id}
+    })
+    const removeUserAndUpdate = await User.findByIdAndUpdate(_id,{
+        $pull:{clips:clipId}
     })
 
 
@@ -98,6 +106,75 @@ exports.searchReels = (async(req,res) =>{
     res.status(200).json({
         status:"Success",
         findReels
+    })
+
+})
+
+exports.GetMyClips = (async(req,res) =>{
+    const {userId} = req.params
+    const findClip = await Clips.findOne({"user.userId":userId})
+    console.log(findClip)
+
+    res.status(200).json({
+        status:"Success",
+        findClip
+    })
+})
+
+exports.createComment = (async(req,res) =>{
+    const {_id,profilePicture,username} = req.userAuth
+    const {clipId, message} = req.body
+    const data={
+        userId:_id,
+        profilePicture,
+        username,
+        message
+    }
+
+    const findClipAndUpdate = await Clips.findById(clipId)
+    console.log(findClipAndUpdate)
+    if(!findClipAndUpdate){
+        return res.status(404)
+        
+    }
+    findClipAndUpdate.comments.push(data)
+    await findClipAndUpdate.save()
+    res.status(201).json({
+        status:"Successful"
+    })
+})
+
+exports.createBookmark = (async(req,res) =>{
+    const {_id} = req.userAuth
+    const {clipId} =  req.params
+    console.log(clipId,_id)
+    const findReelAndUpdate = await Clips.findByIdAndUpdate(clipId ,{
+        $push:{bookmarks:_id}
+    })
+    const findUserAnddUpdate = await User.findByIdAndUpdate(_id ,{
+        $push:{clipBookmarks:clipId}
+    })
+
+    res.json({
+        status:"Success",
+        message:"Bookmark Created Successfully"
+    })
+})
+
+exports.removeBookmark = (async(req,res) =>{
+    const  {_id} = req.userAuth 
+    const  {clipId} = req.params
+    
+    const findClipAndRemove = await Clips.findByIdAndUpdate(clipId ,{
+        $pull:{bookmarks:_id}
+    })
+    
+    const findUserAndRemove = await User.findByIdAndUpdate(_id ,{
+        $pull:{clipBookmarks:clipId}
+    })
+    res.json({
+        status:"Success",
+        message:"Bookmark Removed Successfully"
     })
 
 })

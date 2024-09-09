@@ -11,29 +11,10 @@ exports.createPost = (async(req,res)=>{
     const {_id,username} = req.userAuth
     const findMe = await User.findById(_id)
     // const fileType = req.file.mimetype.split("/")[0]
-    let videoUrl= []
-    let imageUrl = []
-    // if(fileType == "video"){
-    //     videoUrl =  req.file? req.file.location : null
-    // }   
-    // else{
-    //     imageUrl = req.file? req.file.location : null
-
-    // } 
-    // req.files.forEach((file) =>{
-    //     if(file.mimetype.split("/")[0] == "video"){
-    //         videoUrl.push(file.location)
-    //     }
-    //     else{
-    //         imageUrl.push(file.location)
-    //     }
-    // })
-    // const imageUrl =  req.files ? req.files.map((file) => file.location) :null
     const media = req.files ? req.files.map((file) =>({
         uri: file.location,
         mediaType: file.mimetype.split("/")[0]
     })) : null
-    console.log(media ,"VIDEOS")
 
     const creator={
         creator_id:_id,
