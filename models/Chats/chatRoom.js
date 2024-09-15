@@ -23,7 +23,7 @@ const ChatRoomSchema = mongoose.Schema({
     deletedBy:[{type:mongoose.Schema.Types.ObjectId}]
 
 },{
-    timestamp:true
+    timestamps:true
 })
 
 const ChatRoom = mongoose.model("ChatRoom",ChatRoomSchema)

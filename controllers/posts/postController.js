@@ -155,7 +155,9 @@ exports.deleteComment = (async(req,res)=>{
 })
 
 exports.GetLikedPosts = (async(req,res) => {
-    const { IDS } =  req.body
+    const {_id} = req.userAuth
+    const findUser = await User.findById(_id)
+    const LikeIds = findUser.likes
     // const cachingEndPoint = `liked:${IDS.join(',')}`
     // if(!redis.isOpen){
     //     await redis.connect()
@@ -169,7 +171,7 @@ exports.GetLikedPosts = (async(req,res) => {
     //         }
     //     )
     // }
-    const getLikedPosts = await Posts.find({_id: {$in:IDS}})
+    const getLikedPosts = await Posts.find({_id: {$in:LikeIds}})
     // await redis.set(cachingEndPoint,JSON.stringify(getLikedPosts),'EX',3600)
     res.json({
         data:getLikedPosts
@@ -177,12 +179,10 @@ exports.GetLikedPosts = (async(req,res) => {
 })
 
 exports.GetBookmarkedPosts = (async(req,res) =>{
-    console.log("INSIDE  BOOKMARKS")
     const {IDS} = req.body
     const  {_id} =  req.userAuth
 
     const getBookmarks = await Posts.find({_id:{$in:IDS}})
-    console.log(getBookmarks)
     res.json({
         data:getBookmarks
     })
@@ -205,7 +205,6 @@ exports.UpdatePost = (async(req,res) => {
 
 exports.searchPosts = (async(req,res) =>{
     const {title} = req.query
-    console.log(title)
     const findPost = await Posts.find({text:{$regex : String(title) , $options:'i'}}) 
 
     res.json({
@@ -217,7 +216,6 @@ exports.searchPosts = (async(req,res) =>{
 exports.createBookmark = (async(req,res) => {
     const {postId} = req.params
     const {_id} = req.userAuth
-    console.log(postId,_id)
 
     const findPost = await Posts.findByIdAndUpdate(postId ,{
         $push:{bookmarks:_id}

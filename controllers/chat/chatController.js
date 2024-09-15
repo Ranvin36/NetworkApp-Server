@@ -72,8 +72,12 @@ exports.getMessage = (async(req,res) => {
 
 exports.getChats = (async(req,res) =>{
     const {_id} = req.userAuth
-
-    const findChats = await ChatRoom.find({members:_id,deletedBy:{$ne:_id}})
+    const findUser = await User.findById(_id)
+    const blocked =[]
+    findUser.blocked.forEach(blockUser => {
+        blocked.push(blockUser.userId.toString())
+    })
+    const findChats = await ChatRoom.find({members:_id,members:{$not:{$in:blocked}},deletedBy:{$ne:_id}})
 
     if(!findChats){
         console.log("NO chats Available")
@@ -94,7 +98,7 @@ exports.deleteChat = (async(req,res) => {
         $addToSet:{deletedBy:_id}
     })
     
-    updateChat.save()
+    await updateChat.save()
     
     res.status(201).json({
         status:"Success",
@@ -105,8 +109,16 @@ exports.deleteChat = (async(req,res) => {
 
 exports.deleteMessage = (async(req,res) => {
     const {id} = req.body
-    const findMessage = await Message.deleteMany({_id:{$in:id}})
-
+    const {_id} = req.userAuth
+    const findMessage = await Message.find({_id:{$in:id}})
+    findMessage.forEach(async(message) =>{
+        if(message.senderId[0].toString() == _id.toString()){
+            const findMessage = await Message.deleteOne({_id:message._id})
+        }
+        else{
+            return res.status(403)
+        }
+    })
     res.status(204).json({
         status:"Successful",
         message:"Message Deleted Successfully"

@@ -50,13 +50,12 @@ exports.likeClip = (async(req,res) =>{
     const  {clipId}=  req.params
     const  {_id} = req.userAuth
     const alreadyExists = await Clips.find({likes:_id})
-    console.log("INSIDE")
-    if(alreadyExists != null){
-        res.json({
-            status:"Unsuccessfull",
-            message:"Clip Already Liked"
-        })
-    }
+    // if(alreadyExists){
+    //     return res.json({
+    //         status:"Unsuccessfull",
+    //         message:"Clip Already Liked"
+    //     })
+    // }
     const findClipAndUpdate = await Clips.findByIdAndUpdate(clipId,{
         $push:{likes:_id}
     })
@@ -122,12 +121,14 @@ exports.GetMyClips = (async(req,res) =>{
 })
 
 exports.createComment = (async(req,res) =>{
-    const {_id,profilePicture,username} = req.userAuth
+    const {_id,} = req.userAuth
     const {clipId, message} = req.body
+    const findUser = await User.findById(_id)
+
     const data={
         userId:_id,
-        profilePicture,
-        username,
+        profilePicture:findUser.profilePicture,
+        username:findUser.username,
         message
     }
 
