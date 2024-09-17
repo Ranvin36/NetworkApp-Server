@@ -41,6 +41,10 @@ const ClipsSchema = mongoose.Schema({
         type:String,
         default:""
     },
+    views:{
+        type:Number,
+        default:0
+    },
     likes:[{type:mongoose.Types.ObjectId}],
     bookmarks:[{type:mongoose.Types.ObjectId}],
     comments:[CommentSchema]

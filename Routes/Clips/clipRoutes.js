@@ -1,11 +1,12 @@
 const express = require("express")
 const isLoggin = require("../../middlewares/isLoggin")
-const { getReels, deleteClip, likeClip, getClipLikes, UnlikeClip, searchReels, GetMyClips, createComment, createBookmark, removeBookmark } = require("../../controllers/clips/clipsController")
+const { getReels, deleteClip, likeClip, getClipLikes, UnlikeClip, searchReels, GetMyClips, createComment, createBookmark, removeBookmark, getReelsAfter } = require("../../controllers/clips/clipsController")
 const ClipsRouter = express.Router()
 
 ClipsRouter.get('/',isLoggin,getReels)
 ClipsRouter.get('/clips/:userId',isLoggin,GetMyClips)
 ClipsRouter.get('/:clipId',isLoggin,getClipLikes)
+ClipsRouter.get('/after/:id',isLoggin,getReelsAfter)
 ClipsRouter.get('/like/:clipId',isLoggin,likeClip)
 ClipsRouter.get('/un-like/:clipId',isLoggin,UnlikeClip)
 ClipsRouter.post('/search',isLoggin,searchReels)

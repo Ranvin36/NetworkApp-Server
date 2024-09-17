@@ -239,8 +239,14 @@ exports.getFollowers = async (req, res) => {
                 }
             },{
                 $project:{
-                    followers: '$followersDetails',
-                    following: '$followingDetails',
+                    'followersDetails.username':1,
+                    'followersDetails._id':1,
+                    'followersDetails.email':1,
+                    'followersDetails.profilePicture':1,
+                    'followingDetails.username':1,
+                    'followingDetails._id':1,
+                    'followingDetails.email':1,
+                    'followingDetails.profilePicture':1,
                 }
             }
         ])

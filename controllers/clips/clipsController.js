@@ -46,6 +46,19 @@ exports.getReels = (async(req,res) =>{
     })
 }) 
 
+exports.getReelsAfter = (async(req,res) =>{
+    const {id} = req.params
+    const GetClip = await Clips.findById(id)
+    const ClipsAfter = await Clips.find({_id:{$gt:id}}).sort({_id:1}).limit(5)
+
+    res.status(200).json({
+        status:"Success",
+        GetClip,
+        ClipsAfter,
+    })
+
+})
+
 exports.likeClip = (async(req,res) =>{
     const  {clipId}=  req.params
     const  {_id} = req.userAuth
