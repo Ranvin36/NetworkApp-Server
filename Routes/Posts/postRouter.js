@@ -29,13 +29,10 @@ const upload = multer({
         }
     }),
     limits: {
-        fileSize: 10 * 1024 * 1024, // 10 MB
-        fieldSize: 10 * 1024 * 1024 // 10 MB
+        fileSize: 10 * 2048 * 2048, 
+        fieldSize: 10 * 2048 * 2048 
     }
 })
-
-
-
 
 postRouter.get('/search',isLoggin,searchPosts)
 postRouter.post('/create-reel',isLoggin,upload.single('image'),createClip)
@@ -46,7 +43,7 @@ postRouter.get('/get-post/:postId',isLoggin,getPostById)
 postRouter.get('/:id',isLoggin,getMyPosts)
 postRouter.post('/bookmarks',isLoggin,GetBookmarkedPosts)
 postRouter.post('/liked',isLoggin,GetLikedPosts)
-postRouter.post('/update/:postId',isLoggin,upload.single('image'),UpdatePost)
+postRouter.post('/update/:postId',isLoggin,upload.array('image',10),UpdatePost)
 postRouter.post('/like-posts/:postId',isLoggin,likePost)
 postRouter.post('/bookmark/create/:postId',isLoggin,createBookmark)
 postRouter.post('/bookmark/delete/:postId',isLoggin,removeBookmark)

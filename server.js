@@ -16,6 +16,7 @@ const app = express()
 const server = http.createServer(app)
 const socket =  require("socket.io")
 const mongoose = require("mongoose")
+const { globalErrhandler } = require("./middlewares/globalErrorHandler")
 const io = socket(server)
 const port = 3001
 require("./config/database")()
@@ -37,14 +38,12 @@ AWS.config.update({
 io.on("connection", socket =>{
     socket.on("joinRoom", (room) => {
         socket.join(room);
-        console.log(`User joined room: ${room}`);
       });
     
     socket.on("fetchMessages" , async({userId,opponentId}) =>{
         const member =  [opponentId,userId]
         const findChat = await ChatRoom.findOne({members:{$all:member}})
         if(findChat){
-            console.log(member)
             const findMessages = await Message.find({chatRoom:findChat._id})
             
             io.emit("messages",findMessages)
@@ -124,17 +123,18 @@ io.on("connection", socket =>{
     })
 
     socket.on("createComment", async(data) => {
-        console.log(data)
         const {postId,message,userId} = data
         const findPost = await Posts.findById(postId) 
         const findUser = await User.findById(userId)
+        if(!message){
+            return 
+        }
         const uploadComment = {
              userId:userId,
              username:findUser.username,
              message,
              profilePicture:findUser.profilePicture
         }
-        console.log(uploadComment)
      
         findPost.comments.push(uploadComment)
         await findPost.save()
@@ -173,7 +173,6 @@ io.on("connection", socket =>{
         const findUserAndUpdate = await User.findByIdAndUpdate(userId, {
             $pull: {blocked: {userId: new mongoose.Types.ObjectId(opponentId)}}}
         );
-        console.log(data)
         io.emit("receiveUnblockUser",data)  
     })
     socket.on('disconnect' , () =>{
@@ -188,6 +187,7 @@ app.use('/posts',postRouter)
 app.use('/chats',chatsRouter)
 app.use('/reels',reelsRouter)
 app.use('/snapshot',snapShotRouter)
+app.use(globalErrhandler)
 
 
 server.listen(3001, () => {console.log(`Server Running In Port ${port}`)})

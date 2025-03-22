@@ -5,19 +5,17 @@ const bcrypt = require("bcryptjs")
 const {generateToken,generateRefreshToken} = require("../../Utils/GenerateToken")
 const twilio = require("twilio")
 const {Vonage} = require("@vonage/server-sdk") 
+const sendSms = require("../../Utils/SendSms")
 const SendEmail = require("../../Utils/SendEmail")
 const mongoose = require("mongoose")
 const jwt = require("jsonwebtoken")
+const asyncHandler = require("express-async-handler")
 
-exports.register = (async(req,res)=>{
+exports.register = asyncHandler(async(req,res)=>{
     const {username,email,password} = req.body
     const userAlreadyFound = await User.findOne({email})
     if(userAlreadyFound){
-        res.status(404).json({
-            status:"Unsuccessful",
-            message:"User Already Found"
-        })
-        return
+       throw new Error(`User ${username} already exists`)
     }
     const newUser = new User({
         username,
@@ -37,23 +35,15 @@ exports.register = (async(req,res)=>{
 })
 
 
-exports.login = (async(req,res)=>{
+exports.login = asyncHandler(async(req,res)=>{
     const {email,password} = req.body
     const findUser = await User.findOne({email})
     if(!findUser){
-        res.status(401).json({
-            status:"Unsuccessful",
-            message:"Invalid Email Address Or Password"
-        })
-        return
+        throw new Error('"Invalid Email Address Or Password"')
     }
     const passwordCheck = await  bcrypt.compare(password,findUser.password)
     if(!passwordCheck){
-        res.status(401).json({
-            status:"Unsuccessful",
-            message:"Invalid Email Address Or Password"
-        })
-        return
+        throw new Error("Invalid Email Address Or Password")
     }
     const refreshToken = await generateRefreshToken(findUser)
     findUser.refreshToken = refreshToken
@@ -64,10 +54,9 @@ exports.login = (async(req,res)=>{
         data:findUser,
         token:generateToken(findUser)
     })
-    return 
 })
 
-exports.refreshToken= (async(req,res) =>{
+exports.refreshToken= asyncHandler(async(req,res) =>{
     const {refreshToken} = req.body
     jwt.verify(refreshToken,'refresh',async(err,decode) =>{
         const findUser = await User.findById(decode.user.id)
@@ -101,6 +90,17 @@ exports.searchUser = (async(req,res)=>{
     res.json({
         data:findUser
     })
+})
+
+exports.sendSms= (async(req,res) =>{
+    const smsSender = await sendSms('+94767544717', 'Hello from AWS SNS!');
+    console.log(smsSender)
+    res.status(200).json({
+        status:"Success",
+        message:"SMS sent successfully",
+        data:smsSender
+    })
+
 })
 
 exports.sendOtp = (async(req,res)=>{
@@ -137,28 +137,21 @@ exports.verifyOtp = (async(req,res)=>{
     }
 })
 
-exports.addFollower = (async(req,res)=>{
-    const {_id,username,email}=req.userAuth
+exports.addFollower = asyncHandler(async(req,res)=>{
+    const {_id}=req.userAuth
     const opponentId = req.params.opponentId
     const findMe = await User.findById(_id)
     const findOpponent = await User.findById(opponentId)
-    if(_id == opponentId){
-        res.status(404).json({
-            message:"You cannot follow yourself"
-        })
+
+    if(!findOpponent) {
+        throw new Error ("User not found");
     }
+
     if(!findOpponent){
         res.status(404).json({
             message:"User Not Found"
         })
     }
-    // const AddToFollowers = await User.findByIdAndUpdate(opponentId,{
-    //     $push:{followers:_id}
-    // })
-    // const AddToFollowing = await User.findByIdAndUpdate(_id,{
-    //     $push:{following:opponentId}
-    // })
-
     
     const Followingdata = {
         userId:findOpponent._id,
@@ -184,7 +177,7 @@ exports.addFollower = (async(req,res)=>{
     })
 })
 
-exports.removeFollower = (async(req,res)=>{
+exports.removeFollower = asyncHandler(async(req,res)=>{
     const {_id,username} = req.userAuth
     const opponentId = req.params.opponentId
     const findUser = await User.findById(_id)
@@ -201,7 +194,7 @@ exports.removeFollower = (async(req,res)=>{
 })
 
 
-exports.upadteProfilePic = (async(req,res)=>{
+exports.upadteProfilePic = asyncHandler(async(req,res)=>{
     const {_id} = req.userAuth
     const file = req.file && req.file.location
     const findUser = await User.findById({_id})
@@ -217,7 +210,7 @@ exports.upadteProfilePic = (async(req,res)=>{
 })
 
 
-exports.getFollowers = async (req, res) => {
+exports.getFollowers = asyncHandler(async (req, res) => {
     try {
         const { id } = req.params;
         const getUser = await User.aggregate([
@@ -255,7 +248,7 @@ exports.getFollowers = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-};
+})
 
 
 
@@ -329,7 +322,7 @@ exports.verifyToken = (async(req,res) => {
         })
     })
 
-exports.blockUser = (async(req,res) =>{
+exports.blockUser = asyncHandler(async(req,res) =>{
     const {_id} = req.userAuth
     const {opponentId} = req.params
     const findUser = await User.findById(opponentId)
@@ -373,6 +366,7 @@ exports.UnblockUser = (async(req,res) => {
 });
 
 exports.EditUser = (async(req,res) =>{
+    const token = req.headers.authorization.split(" ")[1]
     const {_id} = req.userAuth
     const {username,bio} = req.body
     const findUser = await User.findById(_id)
@@ -388,7 +382,9 @@ exports.EditUser = (async(req,res) =>{
 
     res.status(200).json({
         status:"Success",
-        message:"Profile Updated Successfully"
+        message:"Profile Updated Successfully",
+        data:findUser,
+        token
     })
 })
 

@@ -127,15 +127,22 @@ exports.createComment = (async(req,res)=>{
    const {message} = req.body
    const findPost = await Posts.findById(postId) 
    const findUser = await User.findById(req.userAuth._id)
-   const uploadComment = {
-        userId:req.userAuth._id,
-        username:req.userAuth.username,
-        message,
-        profilePicture:findUser.profilePicture
+   if(message?.length>0){
+       const uploadComment = {
+            userId:req.userAuth._id,
+            username:req.userAuth.username,
+            message,
+            profilePicture:findUser.profilePicture
+       }
+    
+       findPost.comments.push(uploadComment)
+       await findPost.save()
+    }
+    else{
+        console.log("MESSAGE EMPTY")
+        return res.status(400)
+    
    }
-
-   findPost.comments.push(uploadComment)
-   await findPost.save()
 
    res.status(201).json({
     status:"Success",
@@ -189,12 +196,18 @@ exports.GetBookmarkedPosts = (async(req,res) =>{
 })
 
 exports.UpdatePost = (async(req,res) => {
+    console.log("INSIDE")
     const {postId} = req.params
     const {text} = req.body
-    const image = req.file.location ? req.file.location : null
+    const media = req.files ? req.files.map((file) =>({
+        uri: file.location,
+        mediaType: file.mimetype.split("/")[0]
+    })) : null
     const findPost = await Posts.findById(postId)
     findPost.text =  text
-    findPost.image =  image
+    if(media.length>0){
+        findPost.media =  media
+    }
     await findPost.save()
 
     res.status(204).json({

@@ -1,5 +1,5 @@
 const express = require("express")
-const {register, login, authorize, sendOtp, verifyOtp, addFollower, removeFollower, getUser,getFollowers, searchUser, changeUsername, passwordEmail, resetPassword, verifyToken, refreshToken, blockUser, GetBlockedUsers, UnblockUser, EditUser, GetBookmarksForUser} =  require('../../controllers/users/userContollers')
+const {register, login, authorize, sendOtp, verifyOtp, addFollower, removeFollower, getUser,getFollowers, searchUser, changeUsername, passwordEmail, resetPassword, verifyToken, refreshToken, blockUser, GetBlockedUsers, UnblockUser, EditUser, GetBookmarksForUser, sendSms} =  require('../../controllers/users/userContollers')
 const isLoggin = require("../../middlewares/isLoggin")
 const { deleteUsers, searchPosts, createBookmark, removeBookmark } = require("../../controllers/posts/postController")
 const AWS = require("aws-sdk")
@@ -37,6 +37,7 @@ const upload = multer({
 
 
 // POST REQUESTS
+userRouter.post('/sent-sms',sendSms)
 userRouter.post('/edit',isLoggin,upload.single('image'),EditUser)
 userRouter.post('/register' ,register)
 userRouter.post('/login',login)
